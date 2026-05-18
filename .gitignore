@@ -1,0 +1,56 @@
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# macOS
+.DS_Store
+*.swp
+*~.nib
+
+# Misc
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+Timeline.xctimeline
+Playground.playground
+
+# Secrets
+Secrets.plist
+
+# Claude Code workspace
+.claude/
+.claude-flow/
+.swarm/
+.agents/
+Logs/
+output/
+
+# XcodeGen archive + extracted helper (regeneratable)
+xcodegen.zip
+xcodegen/
+
+# Build artifacts
+*.zip
+skills-lock.json
