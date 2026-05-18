@@ -1,137 +1,163 @@
 import Foundation
 import Supabase
 
-/// A service that handles the raw Supabase API calls for journal data,
-/// with automatic mock fallback when keys are unconfigured.
+/// Raw Supabase API calls for the three journal tables.
+///
+/// Wire types (`*Row`) mirror the Postgres columns exactly — snake_case keys,
+/// nullability per the migration. Mapping to/from SwiftData `@Model` objects
+/// happens in `SyncingJournalRepository` and `CloudPullService`.
 actor SupabaseSyncService {
     private let client: SupabaseClient?
     private let isMock: Bool
-    
+
     init(url: URL, key: String) {
-        let isPlaceholder = url.absoluteString.contains("your-project-id") || key == "your-public-anon-key" || key.isEmpty
-        
+        let isPlaceholder = url.absoluteString.contains("your-project-id")
+            || key == "your-public-anon-key"
+            || key == "PASTE_YOUR_SUPABASE_ANON_KEY"
+            || key.isEmpty
+
         if isPlaceholder {
             self.isMock = true
             self.client = nil
-            print("📒 Supabase Sync: Running in MOCK Mode (Credentials are placeholders)")
+            print("📒 Supabase Sync: MOCK mode (placeholder credentials)")
         } else {
             self.isMock = false
             self.client = SupabaseClient(supabaseURL: url, supabaseKey: key)
-            print("✅ Supabase Sync: Initialized live client")
+            print("✅ Supabase Sync: live client (\(url.host ?? "?"))")
         }
     }
-    
-    struct EntryDTO: Encodable {
+
+    // MARK: - Wire types
+
+    struct EntryRow: Codable, Sendable {
         let id: String
-        let user_id: UUID
-        let transcript: String
-        let title: String
-        let summary: String
+        let user_id: String
+        let date: Date
+        let raw_transcript: String
+        let polished_transcript: String
+        let ai_generated_title: String
+        let one_line_summary: String
+        let retry_pending: Bool
+        let processing_failed: Bool?
+        let art_movement: String?
     }
-    
-    struct NodeDTO: Encodable {
+
+    struct NodeRow: Codable, Sendable {
         let id: String
         let entry_id: String
+        let user_id: String
         let label: String
-        let category: String
-        let emotion: String
-        let x: Double?
-        let y: Double?
+        let category_key: String
+        let emotion_key: String
+        let weight: Int
+        let expanded_content: String?
+        let voice_notes: [String]
+        let position_x: Double?
+        let position_y: Double?
     }
-    
-    struct SyncNode: Sendable {
+
+    struct LinkRow: Codable, Sendable {
         let id: String
-        let label: String
-        let category: String
-        let emotion: String
-        let x: Double?
-        let y: Double?
-        
-        init(id: String, label: String, category: String, emotion: String, x: Double?, y: Double?) {
-            self.id = id
-            self.label = label
-            self.category = category
-            self.emotion = emotion
-            self.x = x
-            self.y = y
-        }
+        let entry_id: String
+        let user_id: String
+        let source_id: String
+        let target_id: String
+        let value: Int
+        let relationship: String?
     }
-    
-    func upsertEntry(id: String, userID: UUID, transcript: String, title: String, summary: String) async {
-        if isMock {
-            print("📒 [Mock Sync] Upserted entry: \(title) (ID: \(id))")
+
+    // MARK: - Upserts (called from SyncingJournalRepository)
+
+    func upsertEntry(_ row: EntryRow) async {
+        guard !isMock, let client else {
+            print("📒 [Mock] upsert entry id=\(row.id) title=\(row.ai_generated_title)")
             return
         }
-        
-        guard let client = client else { return }
-        
-        let dto = EntryDTO(
-            id: id,
-            user_id: userID,
-            transcript: transcript,
-            title: title,
-            summary: summary
-        )
-        
         do {
-            try await client
-                .from("entries")
-                .upsert(dto)
-                .execute()
-            print("✅ Supabase Sync: Upserted entry successfully")
+            try await client.from("entries").upsert(row).execute()
+            print("☁️ upsert entry id=\(row.id)")
         } catch {
-            print("❌ Supabase Sync Error (Entry): \(error)")
+            print("❌ upsert entry id=\(row.id): \(error)")
         }
     }
-    
-    func upsertNodes(_ nodes: [SyncNode], for entryID: String) async {
-        if isMock {
-            print("📒 [Mock Sync] Upserted \(nodes.count) nodes for entry: \(entryID)")
+
+    func upsertNodes(_ rows: [NodeRow]) async {
+        guard !rows.isEmpty else { return }
+        guard !isMock, let client else {
+            print("📒 [Mock] upsert \(rows.count) nodes")
             return
         }
-        
-        guard let client = client else { return }
-        
-        let dtos = nodes.map { node in
-            NodeDTO(
-                id: node.id,
-                entry_id: entryID,
-                label: node.label,
-                category: node.category,
-                emotion: node.emotion,
-                x: node.x,
-                y: node.y
-            )
-        }
-        
         do {
-            try await client
-                .from("nodes")
-                .upsert(dtos)
-                .execute()
-            print("✅ Supabase Sync: Upserted nodes successfully")
+            try await client.from("nodes").upsert(rows).execute()
+            print("☁️ upsert \(rows.count) nodes")
         } catch {
-            print("❌ Supabase Sync Error (Nodes): \(error)")
+            print("❌ upsert nodes: \(error)")
         }
     }
-    
+
+    func upsertLinks(_ rows: [LinkRow]) async {
+        guard !rows.isEmpty else { return }
+        guard !isMock, let client else {
+            print("📒 [Mock] upsert \(rows.count) links")
+            return
+        }
+        do {
+            try await client.from("links").upsert(rows).execute()
+            print("☁️ upsert \(rows.count) links")
+        } catch {
+            print("❌ upsert links: \(error)")
+        }
+    }
+
     func deleteEntry(id: String) async {
-        if isMock {
-            print("📒 [Mock Sync] Deleted entry: \(id)")
+        guard !isMock, let client else {
+            print("📒 [Mock] delete entry id=\(id)")
             return
         }
-        
-        guard let client = client else { return }
-        
         do {
-            try await client
-                .from("entries")
-                .delete()
-                .eq("id", value: id)
-                .execute()
-            print("✅ Supabase Sync: Deleted entry successfully")
+            try await client.from("entries").delete().eq("id", value: id).execute()
+            print("☁️ delete entry id=\(id) (cascades to nodes/links)")
         } catch {
-            print("❌ Supabase Sync Error (Delete): \(error)")
+            print("❌ delete entry id=\(id): \(error)")
         }
+    }
+
+    // MARK: - Fetches (called from CloudPullService on login)
+
+    func fetchAllEntries(userID: String) async throws -> [EntryRow] {
+        guard !isMock, let client else { return [] }
+        let rows: [EntryRow] = try await client
+            .from("entries")
+            .select()
+            .eq("user_id", value: userID)
+            .order("date", ascending: false)
+            .execute()
+            .value
+        print("☁️ fetched \(rows.count) entries for user=\(userID)")
+        return rows
+    }
+
+    func fetchAllNodes(userID: String) async throws -> [NodeRow] {
+        guard !isMock, let client else { return [] }
+        let rows: [NodeRow] = try await client
+            .from("nodes")
+            .select()
+            .eq("user_id", value: userID)
+            .execute()
+            .value
+        print("☁️ fetched \(rows.count) nodes for user=\(userID)")
+        return rows
+    }
+
+    func fetchAllLinks(userID: String) async throws -> [LinkRow] {
+        guard !isMock, let client else { return [] }
+        let rows: [LinkRow] = try await client
+            .from("links")
+            .select()
+            .eq("user_id", value: userID)
+            .execute()
+            .value
+        print("☁️ fetched \(rows.count) links for user=\(userID)")
+        return rows
     }
 }

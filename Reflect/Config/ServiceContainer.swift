@@ -13,31 +13,53 @@ final class ServiceContainer {
     let entryProcessor: any EntryProcessor
     let deepDiveService: any DeepDiveService
     let authService: any AuthService
+    let syncService: SupabaseSyncService
 
-    init(entryProcessor: any EntryProcessor, 
-         deepDiveService: any DeepDiveService,
-         authService: any AuthService) {
+    init(
+        entryProcessor: any EntryProcessor,
+        deepDiveService: any DeepDiveService,
+        authService: any AuthService,
+        syncService: SupabaseSyncService
+    ) {
         self.entryProcessor = entryProcessor
         self.deepDiveService = deepDiveService
         self.authService = authService
+        self.syncService = syncService
     }
 
-    /// Default offline-first wiring: direct Groq calls, no backend.
+    /// Live wiring: real Groq + real Supabase (auth, sync) using values from
+    /// `SecretsLoader` (override) → `AppConfig` (default).
     static func live() -> ServiceContainer {
-        let client = GroqClient(apiKey: SecretsLoader.groqAPIKey())
-        let auth = SupabaseAuthService(url: SecretsLoader.supabaseURL(), key: SecretsLoader.supabaseAnonKey())
-        
+        let groqKey = SecretsLoader.groqAPIKey()
+        let supabaseURL = SecretsLoader.supabaseURL()
+        let supabaseKey = SecretsLoader.supabaseAnonKey()
+
+        let groqClient = GroqClient(apiKey: groqKey)
+        let auth = SupabaseAuthService(url: supabaseURL, key: supabaseKey)
+        let sync = SupabaseSyncService(url: supabaseURL, key: supabaseKey)
+
         return ServiceContainer(
-            entryProcessor: GroqEntryProcessor(client: client, model: AppConfig.entryProcessorModel),
-            deepDiveService: GroqDeepDiveService(client: client, model: AppConfig.deepDiveModel),
-            authService: auth
+            entryProcessor: GroqEntryProcessor(client: groqClient, model: AppConfig.entryProcessorModel),
+            deepDiveService: GroqDeepDiveService(client: groqClient, model: AppConfig.deepDiveModel),
+            authService: auth,
+            syncService: sync
         )
     }
 
-    /// Builds a repository bound to the given SwiftUI-provided `ModelContext`.
+    /// Builds the repository the views use — local-first SwiftData, mirrored
+    /// to Supabase in the background.
     func makeRepository(context: ModelContext) -> any JournalRepository {
         let local = SwiftDataJournalRepository(context: context)
-        let remote = SupabaseSyncService(url: SecretsLoader.supabaseURL(), key: SecretsLoader.supabaseAnonKey())
-        return SyncingJournalRepository(local: local, remote: remote, auth: authService)
+        return SyncingJournalRepository(local: local, remote: syncService, auth: authService)
+    }
+
+    /// Builds the coordinator that handles auth-state side effects
+    /// (cloud-pull on sign-in, local-wipe on sign-out).
+    func makeAuthSyncCoordinator(context: ModelContext) -> AuthSyncCoordinator {
+        AuthSyncCoordinator(
+            auth: authService,
+            pull: CloudPullService(context: context, remote: syncService),
+            wipe: LocalWipeService(context: context)
+        )
     }
 }

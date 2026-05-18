@@ -1,20 +1,27 @@
 import Foundation
 
-/// Protocol for authentication operations.
+/// Identity / session management.
+///
+/// The provider-specific UI (`SignInWithAppleButton`, Google's SDK) lives in
+/// `LoginView` because it needs UIKit presenters. Those views collect the
+/// provider's ID token and hand it to the service, which exchanges it for
+/// a Supabase session.
 @MainActor
-public protocol AuthService: Sendable {
-    /// The currently authenticated user ID, if any.
-    var currentUserID: String? { get }
-    
-    /// Whether a user is currently logged in.
+protocol AuthService: Sendable {
+    /// `true` while a Supabase session exists. SwiftUI-observable.
     var isAuthenticated: Bool { get }
-    
-    /// Trigger Apple Sign-In flow.
-    func signInWithApple() async throws
-    
-    /// Trigger Google Sign-In flow.
-    func signInWithGoogle() async throws
-    
-    /// Sign out the current user.
+
+    /// Stable `auth.users.id` for the signed-in user, or `nil` if logged out.
+    var currentUserID: String? { get }
+
+    /// Exchange Apple's identity token (plus the original raw nonce we sent in
+    /// the request) for a Supabase session.
+    func signInWithApple(idToken: String, nonce: String) async throws
+
+    /// Exchange Google's ID token (and optionally the access token) for a
+    /// Supabase session.
+    func signInWithGoogle(idToken: String, accessToken: String?) async throws
+
+    /// Terminate the current session.
     func signOut() async throws
 }
