@@ -1,29 +1,36 @@
 import SwiftUI
 @preconcurrency import SwiftData
-import UIKit
 
-/// The neural map for one journal entry. Renders the theme graph the LLM
-/// extracted from the transcript, supports drag + zoom + filter, and switches
-/// between map and transcript views.
+/// Neural map for one journal entry — redesigned per Reflect Mobile spec.
+///
+/// Layout (top → bottom):
+/// 1. Top bar: back/menu chevron · "WEEK N" mono on the right.
+/// 2. Eyebrow ("Neural map · N nodes") + serif H1 ("What you've been thinking about.").
+/// 3. Horizontal filter chips: All / Self / Relationships / Growth / Authenticity.
+/// 4. Map canvas — paper-dot field, clean flat circles, dashed curved edges.
+/// 5. Bottom-centre `PulsingRing` (68pt) with "NEW REFLECTION" cue.
 struct NeuralMapView: View {
     let entry: JournalEntry
 
     @Environment(ServiceContainer.self) private var services
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: NeuralMapViewModel?
+    @State private var activeFilter: NodeCategory? = nil
+    @State private var showRecording = false
 
     var body: some View {
         GeometryReader { proxy in
             Group {
-                if let viewModel {
-                    LoadedNeuralMapView(viewModel: viewModel, entry: entry, canvasSize: proxy.size)
+                if let vm = viewModel {
+                    LoadedMap(viewModel: vm, entry: entry,
+                              canvasSize: proxy.size,
+                              activeFilter: $activeFilter,
+                              dismiss: dismiss,
+                              showRecording: $showRecording)
                 } else {
-                    ZStack {
-                        ReflectTheme.canvas.ignoresSafeArea()
-                        ProgressView()
-                            .tint(ReflectTheme.accent)
-                    }
+                    bootstrap
                 }
             }
             .task(id: entry.id) {
@@ -43,70 +50,6 @@ struct NeuralMapView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-    }
-}
-
-/// Active map UI rendered once the ViewModel exists. Splitting this out keeps
-/// the body small and ensures `@Observable` tracking sees a non-optional
-/// reference (which is more reliable than `viewModel?.state`).
-private struct LoadedNeuralMapView: View {
-    let viewModel: NeuralMapViewModel
-    let entry: JournalEntry
-    let canvasSize: CGSize
-
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var selectedNodeId: String?
-    @State private var showNodeDetail = false
-    @State private var selectedEdge: SDLink?
-    @State private var showEdgeExplanation = false
-    @State private var showTranscript = false
-    @State private var showRecording = false
-    @State private var viewMode: ViewMode = .map
-    @State private var activeFilter: NodeCategory?
-    @State private var appeared = false
-
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
-
-    enum ViewMode: Hashable { case map, transcript }
-
-    var body: some View {
-        ZStack {
-            ReflectTheme.canvas.ignoresSafeArea()
-            gridBackground
-            centerGlow
-
-            if viewMode == .map {
-                mapCanvas
-            } else {
-                transcriptArea
-            }
-
-            overlayChrome
-
-            if viewModel.showUpdateToast {
-                updateToast
-            }
-        }
-        .task {
-            withAnimation(.easeOut(duration: 0.3)) { appeared = true }
-        }
-        .onChange(of: entry.retryPending) { _, isPending in
-            if isPending { Task { await viewModel.retry() } }
-        }
-        .onChange(of: viewModel.showUpdateToast) { _, show in
-            guard show else { return }
-            Task {
-                try? await Task.sleep(for: .seconds(2.5))
-                viewModel.showUpdateToast = false
-            }
-        }
-        .sheet(isPresented: $showNodeDetail) { nodeDetailSheet }
-        .sheet(isPresented: $showTranscript) { TranscriptSheet(entry: entry) }
-        .sheet(isPresented: $showEdgeExplanation) { edgeExplanationSheet }
         .fullScreenCover(isPresented: $showRecording) {
             RecordingView(
                 mode: .appendingTo(entry),
@@ -116,340 +59,252 @@ private struct LoadedNeuralMapView: View {
         }
     }
 
-    // MARK: - Map layers
-
-    private var gridBackground: some View {
-        Canvas { ctx, size in
-            let grid: CGFloat = 40
-            ctx.stroke(
-                Path { p in
-                    for x in stride(from: 0, through: size.width, by: grid) {
-                        p.move(to: CGPoint(x: x, y: 0)); p.addLine(to: CGPoint(x: x, y: size.height))
-                    }
-                    for y in stride(from: 0, through: size.height, by: grid) {
-                        p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: size.width, y: y))
-                    }
-                },
-                with: .color(ReflectTheme.separator.opacity(0.1)),
-                lineWidth: 0.5
-            )
-        }
-        .ignoresSafeArea()
-    }
-
-    private var centerGlow: some View {
-        RadialGradient(
-            colors: [ReflectTheme.accent.opacity(0.02), .clear],
-            center: .center, startRadius: 100, endRadius: 400
-        )
-        .ignoresSafeArea()
-    }
-
-    @ViewBuilder
-    private var mapCanvas: some View {
+    private var bootstrap: some View {
         ZStack {
-            switch viewModel.state {
-            case .processing, .idle:
-                processingOverlay
-            case .failed(let message):
-                failureOverlay(message: message)
-            case .ready:
-                graphLayer
+            ReflectTheme.canvas.ignoresSafeArea()
+            ProgressView().tint(ReflectTheme.primary)
+        }
+    }
+}
+
+// MARK: - Loaded surface
+
+private struct LoadedMap: View {
+    let viewModel: NeuralMapViewModel
+    let entry: JournalEntry
+    let canvasSize: CGSize
+    @Binding var activeFilter: NodeCategory?
+    let dismiss: DismissAction
+    @Binding var showRecording: Bool
+
+    @State private var appeared = false
+
+    var body: some View {
+        ZStack {
+            ReflectTheme.canvas.ignoresSafeArea()
+            paperDotField
+
+            VStack(spacing: 0) {
+                topBar
+                titleBlock
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                filterStrip
+                    .padding(.bottom, 4)
+
+                ZStack {
+                    switch viewModel.state {
+                    case .processing, .idle:   processingOverlay
+                    case .failed(let m):       failureOverlay(message: m)
+                    case .ready:               graphLayer
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .bottom) { recordRing }
             }
         }
-        .scaleEffect(scale)
-        .offset(offset)
-        .gesture(
-            DragGesture()
-                .onChanged { val in
-                    offset = CGSize(
-                        width: lastOffset.width + val.translation.width,
-                        height: lastOffset.height + val.translation.height
-                    )
+        .task {
+            withAnimation(.easeOut(duration: 0.3)) { appeared = true }
+        }
+    }
+
+    // MARK: - Visual layers
+
+    private var paperDotField: some View {
+        Canvas { ctx, size in
+            let spacing: CGFloat = 18
+            ctx.opacity = 0.5
+            for x in stride(from: 0, through: size.width, by: spacing) {
+                for y in stride(from: 0, through: size.height, by: spacing) {
+                    let rect = CGRect(x: x - 0.5, y: y - 0.5, width: 1, height: 1)
+                    ctx.fill(Path(ellipseIn: rect), with: .color(ReflectTheme.ink.opacity(0.06)))
                 }
-                .onEnded { _ in lastOffset = offset }
-        )
-        .simultaneousGesture(
-            MagnifyGesture()
-                .onChanged { val in scale = min(max(lastScale * val.magnification, 0.5), 3.0) }
-                .onEnded { _ in lastScale = scale }
-        )
+            }
+        }
+        .ignoresSafeArea()
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(ReflectTheme.ink)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(Color.black.opacity(0.06)))
+            }
+            Spacer()
+            Text(weekLabel)
+                .font(ReflectTheme.mono(11))
+                .foregroundStyle(ReflectTheme.inkSoft)
+                .tracking(0.4)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 6)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Neural map · \(viewModel.nodes.count) node\(viewModel.nodes.count == 1 ? "" : "s")")
+                .eyebrowStyle(color: ReflectTheme.mustard500)
+            Text("What you've been\nthinking about.")
+                .font(.system(size: 26, weight: .medium, design: .serif))
+                .foregroundStyle(ReflectTheme.ink)
+                .lineSpacing(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var filterStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                FilterPill(label: "All", isActive: activeFilter == nil) {
+                    activeFilter = nil
+                }
+                ForEach(viewModel.categories, id: \.storageKey) { category in
+                    FilterPill(label: category.label, isActive: activeFilter == category) {
+                        activeFilter = (activeFilter == category) ? nil : category
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+        }
     }
 
     @ViewBuilder
     private var graphLayer: some View {
-        let filtered = viewModel.filter(by: activeFilter)
+        let positioned = viewModel.nodes
+        let edges = viewModel.edges
         ZStack {
-            ForEach(filtered.edges) { edge in
-                if let source = filtered.nodes.first(where: { $0.id == edge.source }),
-                   let target = filtered.nodes.first(where: { $0.id == edge.target }) {
-                    edgeShape(source: source.position, target: target.position, value: edge.value) {
-                        selectedEdge = edge
-                        showEdgeExplanation = true
+            // Edges
+            Canvas { ctx, _ in
+                for (i, edge) in edges.enumerated() {
+                    guard let a = positioned.first(where: { $0.id == edge.source }),
+                          let b = positioned.first(where: { $0.id == edge.target }) else { continue }
+                    let mx = (a.position.x + b.position.x) / 2 + (i.isMultiple(of: 2) ? -16 : 16)
+                    let my = (a.position.y + b.position.y) / 2 + (i.isMultiple(of: 2) ? 16 : -12)
+                    var p = Path()
+                    p.move(to: a.position)
+                    p.addQuadCurve(to: b.position, control: CGPoint(x: mx, y: my))
+                    let dim = isDimmed(a) || isDimmed(b)
+                    ctx.stroke(p,
+                               with: .color(dim
+                                            ? ReflectTheme.inkFaint.opacity(0.15)
+                                            : ReflectTheme.inkSoft.opacity(0.26)),
+                               style: StrokeStyle(lineWidth: 1, dash: [3, 5]))
+                }
+            }
+
+            // Nodes
+            ForEach(positioned) { positionedNode in
+                if let sd = entry.mapNodes.first(where: { $0.id == positionedNode.id }) {
+                    NavigationLink(value: sd) {
+                        MapNodeView(node: positionedNode, isDimmed: isDimmed(positionedNode))
                     }
-                    .opacity(appeared ? 1 : 0)
-                    .animation(.easeIn(duration: 0.4).delay(0.5), value: appeared)
+                    .buttonStyle(.plain)
+                    .position(positionedNode.position)
                 }
-            }
-
-            ForEach(filtered.nodes) { node in
-                ThoughtNodeView(node: node, isSelected: selectedNodeId == node.id) {
-                    selectedNodeId = node.id
-                    showNodeDetail = true
-                }
-                .position(node.position)
-                .gesture(dragGesture(for: node))
             }
         }
-    }
-
-    private func edgeShape(source: CGPoint, target: CGPoint, value: Int, onTap: @escaping () -> Void) -> some View {
-        ZStack {
-            EdgePath(from: source, to: target)
-                .stroke(
-                    ReflectTheme.edgeLine.opacity(0.25 + Double(value) * 0.1),
-                    style: StrokeStyle(lineWidth: 0.5 + CGFloat(value) * 0.3, lineCap: .round)
-                )
-            EdgePath(from: source, to: target)
-                .stroke(Color.clear, lineWidth: 20)
-                .contentShape(EdgePath(from: source, to: target).stroke(style: StrokeStyle(lineWidth: 20)))
-                .onTapGesture(perform: onTap)
-        }
-    }
-
-    private func dragGesture(for node: PositionedNode) -> some Gesture {
-        DragGesture()
-            .onChanged { value in
-                viewModel.updatePosition(nodeId: node.id, to: value.location)
-            }
-            .onEnded { value in
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    viewModel.updatePosition(nodeId: node.id, to: value.location)
-                }
-                viewModel.persistPosition(nodeId: node.id, to: value.location)
-            }
+        .opacity(appeared ? 1 : 0)
+        .animation(.easeOut(duration: 0.4), value: appeared)
     }
 
     private var processingOverlay: some View {
         VStack(spacing: 14) {
-            ProgressView()
-                .tint(ReflectTheme.accent)
-                .scaleEffect(1.2)
+            ProgressView().tint(ReflectTheme.primary).scaleEffect(1.2)
             Text("Processing neural map…")
                 .font(ReflectTheme.rounded(15, weight: .medium))
-                .foregroundStyle(ReflectTheme.textMuted)
+                .foregroundStyle(ReflectTheme.inkSoft)
             Text("This usually takes 5–20 seconds.")
                 .font(ReflectTheme.rounded(12))
-                .foregroundStyle(ReflectTheme.textMuted.opacity(0.6))
+                .foregroundStyle(ReflectTheme.inkFaint)
         }
-        .padding(ReflectTheme.spacingLG)
     }
 
     private func failureOverlay(message: String) -> some View {
         VStack(spacing: 14) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 28))
-                .foregroundStyle(ReflectTheme.accent)
+                .foregroundStyle(ReflectTheme.primary)
             Text("Couldn't analyse this reflection")
                 .font(ReflectTheme.serif(17, weight: .semibold))
-                .foregroundStyle(ReflectTheme.textPrimary)
+                .foregroundStyle(ReflectTheme.ink)
             Text(message)
                 .font(ReflectTheme.rounded(13))
-                .foregroundStyle(ReflectTheme.textMuted)
+                .foregroundStyle(ReflectTheme.inkSoft)
                 .multilineTextAlignment(.center)
             Button("Retry") {
                 Task { await viewModel.retry() }
             }
             .buttonStyle(.borderedProminent)
-            .tint(ReflectTheme.accent)
+            .tint(ReflectTheme.primary)
         }
-        .padding(ReflectTheme.spacingLG)
+        .padding(20)
     }
 
-    private var transcriptArea: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: ReflectTheme.spacingLG) {
-                Text(entry.polishedTranscript.isEmpty ? entry.rawTranscript : entry.polishedTranscript)
-                    .font(ReflectTheme.serif(18))
-                    .foregroundStyle(ReflectTheme.textPrimary)
-                    .lineSpacing(8)
-
-                Button { showRecording = true } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mic.fill")
-                        Text("Continue journal")
-                    }
-                    .font(ReflectTheme.rounded(15, weight: .medium))
-                    .foregroundStyle(.white)
-                    .padding(.vertical, 12).padding(.horizontal, 20)
-                    .background(Capsule().fill(ReflectTheme.accent))
-                    .shadow(color: ReflectTheme.accent.opacity(0.3), radius: 6, y: 3)
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, ReflectTheme.spacingMD)
+    private var recordRing: some View {
+        VStack(spacing: 8) {
+            PulsingRing(mode: .resting, size: 68) {
+                showRecording = true
             }
-            .padding(ReflectTheme.spacingLG)
+            Text("NEW REFLECTION")
+                .font(ReflectTheme.rounded(10, weight: .bold))
+                .tracking(1.0)
+                .foregroundStyle(ReflectTheme.inkSoft)
         }
-        .padding(.top, 140)
+        .padding(.bottom, 20)
     }
 
-    // MARK: - Chrome
+    // MARK: - Helpers
 
-    private var overlayChrome: some View {
-        VStack {
-            floatingTopBar
-
-            Picker("View mode", selection: $viewMode) {
-                Text("Map").tag(ViewMode.map)
-                Text("Transcript").tag(ViewMode.transcript)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, ReflectTheme.spacingLG)
-            .padding(.top, 4)
-
-            Spacer()
-
-            if viewMode == .map { bottomFilterStrip.padding(.bottom, 20) }
-        }
+    private func isDimmed(_ node: PositionedNode) -> Bool {
+        guard let activeFilter else { return false }
+        return node.category != activeFilter
     }
 
-    private var floatingTopBar: some View {
-        HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(ReflectTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(ReflectTheme.cardSurface)
-                            .shadow(color: ReflectTheme.softShadow, radius: 8, y: 2)
-                    )
-            }
-            Spacer()
-            Text(entry.aiGeneratedTitle)
-                .font(ReflectTheme.serif(15, weight: .medium))
-                .foregroundStyle(ReflectTheme.textPrimary.opacity(0.75))
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Spacer()
-            Menu {
-                Button { shareSession() } label: {
-                    Label("Share session", systemImage: "square.and.arrow.up")
-                }
-                Button { showTranscript = true } label: {
-                    Label("View transcript", systemImage: "doc.text")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(ReflectTheme.textPrimary)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(ReflectTheme.cardSurface)
-                            .shadow(color: ReflectTheme.softShadow, radius: 8, y: 2)
-                    )
+    private var weekLabel: String {
+        let cal = Calendar.current
+        let week = cal.component(.weekOfYear, from: entry.date)
+        return "WEEK \(week)"
+    }
+}
+
+// MARK: - Map node
+
+private struct MapNodeView: View {
+    let node: PositionedNode
+    let isDimmed: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(ReflectTheme.color(for: node.emotion))
+                .frame(width: diameter, height: diameter)
+                .overlay(
+                    Circle().stroke(Color.black.opacity(0.04), lineWidth: 0.5)
+                )
+            // Subtle gloss top-left
+            Ellipse()
+                .fill(Color.white.opacity(0.22))
+                .frame(width: diameter * 0.36, height: diameter * 0.18)
+                .offset(x: -diameter * 0.18, y: -diameter * 0.20)
+            if diameter >= 56 {
+                Text(node.label)
+                    .font(.system(size: min(13, diameter * 0.20), weight: .medium, design: .serif))
+                    .foregroundStyle(ReflectTheme.textColor(for: node.emotion))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .padding(.horizontal, 6)
+                    .frame(width: diameter, height: diameter)
             }
         }
-        .padding(.horizontal, ReflectTheme.spacingLG)
-        .padding(.top, ReflectTheme.spacingSM)
+        .opacity(isDimmed ? 0.22 : 1)
+        .animation(ReflectTheme.springSnappy, value: isDimmed)
     }
 
-    private var bottomFilterStrip: some View {
-        let categories = viewModel.categories
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                FilterPill(label: "All", color: ReflectTheme.accent, isActive: activeFilter == nil) {
-                    activeFilter = nil
-                }
-                ForEach(categories, id: \.storageKey) { category in
-                    FilterPill(
-                        label: category.label,
-                        color: ReflectTheme.color(for: category),
-                        isActive: activeFilter == category
-                    ) {
-                        activeFilter = category
-                    }
-                }
-            }
-            .padding(.horizontal, ReflectTheme.spacingLG)
-        }
-        .padding(.vertical, 12)
-        .background(
-            LinearGradient(
-                colors: [ReflectTheme.canvas.opacity(0), ReflectTheme.canvas],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        )
-    }
-
-    private var updateToast: some View {
-        VStack {
-            Spacer()
-            Text("Entry updated")
-                .font(ReflectTheme.rounded(14, weight: .medium))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color.black.opacity(0.8)))
-                .padding(.bottom, 40)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
-        .zIndex(200)
-    }
-
-    // MARK: - Sheets
-
-    @ViewBuilder
-    private var nodeDetailSheet: some View {
-        if let id = selectedNodeId,
-           let node = viewModel.nodes.first(where: { $0.id == id }) {
-            NodeDetailSheet(node: node, entry: entry, viewModel: viewModel)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(ReflectTheme.cornerRadiusXL)
-                .presentationBackground(ReflectTheme.cardSurface)
-        }
-    }
-
-    @ViewBuilder
-    private var edgeExplanationSheet: some View {
-        if let edge = selectedEdge {
-            EdgeExplanationSheet(
-                sourceTheme: edge.source,
-                targetTheme: edge.target,
-                strength: edge.value,
-                relationship: edge.relationship
-            )
-            .presentationDetents([.height(220)])
-            .presentationDragIndicator(.visible)
-        }
-    }
-
-    // MARK: - Share
-
-    private func shareSession() {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        let dateString = formatter.string(from: entry.date)
-        let body = entry.polishedTranscript.isEmpty ? entry.rawTranscript : entry.polishedTranscript
-        let text = """
-        \(entry.aiGeneratedTitle)
-
-        \(body)
-
-        \u{2014} Reflected on \(dateString)
-        """
-        let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
-        if let window = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }),
-           let root = window.rootViewController {
-            root.present(activityVC, animated: true)
-        }
+    private var diameter: CGFloat {
+        ReflectTheme.nodeDiameter(prominence: node.prominence)
     }
 }
