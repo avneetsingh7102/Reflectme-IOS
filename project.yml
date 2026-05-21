@@ -32,7 +32,18 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CODE_SIGN_ENTITLEMENTS: Reflect/Reflect.entitlements
+
+        # ─── Sign in with Apple ──────────────────────────────────────
+        # The entitlement file is kept at Reflect/Reflect.entitlements but
+        # NOT wired up while you're on a free Apple ID — free profiles
+        # can't provision the `com.apple.developer.applesignin` capability,
+        # which blocks device installs. Use the "Skip — try locally" button
+        # on the login screen instead.
+        #
+        # When you have a paid Apple Developer account, uncomment the line
+        # below, re-run `xcodegen generate`, and add the capability in
+        # Xcode → Signing & Capabilities. Apple sign-in will then work.
+        # CODE_SIGN_ENTITLEMENTS: Reflect/Reflect.entitlements
 
 packages:
   Supabase:

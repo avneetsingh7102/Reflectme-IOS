@@ -23,7 +23,11 @@ final class SyncingJournalRepository: JournalRepository {
         self.auth = auth
     }
 
-    private var userID: String? { auth.currentUserID }
+    private var userID: String? {
+        // Don't expose the bypass sentinel — RLS would reject those calls.
+        guard !auth.isLocalBypass else { return nil }
+        return auth.currentUserID
+    }
 
     // MARK: - Writes
 

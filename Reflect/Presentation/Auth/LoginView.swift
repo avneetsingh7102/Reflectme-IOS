@@ -123,6 +123,17 @@ struct LoginView: View {
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .padding(.top, 4)
+
+            // Local-only bypass for testing without a paid Apple Developer
+            // account. Cloud sync is disabled in this mode.
+            Button { viewModel.signInLocally() } label: {
+                Text("Skip — try locally (no sync)")
+                    .font(ReflectTheme.rounded(12, weight: .semibold))
+                    .foregroundStyle(ReflectTheme.inkSoft)
+                    .underline()
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 8)
         }
         .padding(.bottom, ReflectTheme.spacingLG)
     }
@@ -211,6 +222,13 @@ final class LoginViewModel {
 
     func signInWithGoogle() {
         errorMessage = "Google sign-in needs the GoogleSignIn SPM package + a Google Cloud OAuth client ID. Coming soon."
+    }
+
+    // MARK: Local bypass (testing only)
+
+    func signInLocally() {
+        errorMessage = nil
+        authService.signInLocally()
     }
 
     // MARK: Nonce helpers

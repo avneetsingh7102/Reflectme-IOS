@@ -36,6 +36,13 @@ final class AuthSyncCoordinator {
     /// state at the call site so we don't kick off a pull on every render.
     func handle(isAuthenticatedNow: Bool) async {
         if isAuthenticatedNow {
+            // Local-bypass mode skips both pull and wipe — user is testing
+            // offline without a Supabase session.
+            if auth.isLocalBypass {
+                print("⚠️ Local bypass active — skipping cloud pull.")
+                state = .ready
+                return
+            }
             guard let userID = auth.currentUserID else {
                 state = .failed("Signed in but no user id.")
                 return
