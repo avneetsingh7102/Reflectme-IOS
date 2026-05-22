@@ -60,8 +60,8 @@ final class SyncingJournalRepository: JournalRepository {
         Task { await remote.deleteEntry(id: id) }
     }
 
-    func setExpandedContent(_ content: String, for node: SDNode) throws {
-        try local.setExpandedContent(content, for: node)
+    func setDeepDive(_ dive: DeepDive, for node: SDNode) throws {
+        try local.setDeepDive(dive, for: node)
         if let entry = node.session { pushNodes(of: entry) }
     }
 
@@ -109,6 +109,7 @@ final class SyncingJournalRepository: JournalRepository {
                 emotion_key: node.emotionKey,
                 weight: node.weight,
                 expanded_content: node.expandedContent,
+                expanded_question: node.expandedQuestion,
                 voice_notes: node.voiceNotes,
                 position_x: node.positionX,
                 position_y: node.positionY

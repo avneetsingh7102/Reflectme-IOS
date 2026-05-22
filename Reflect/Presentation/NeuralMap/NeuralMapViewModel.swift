@@ -87,8 +87,8 @@ final class NeuralMapViewModel {
         else { return }
         let transcript = entry.polishedTranscript.isEmpty ? entry.rawTranscript : entry.polishedTranscript
         do {
-            let content = try await deepDiveService.expand(themeLabel: positionedNode.label, transcript: transcript)
-            try repository.setExpandedContent(content, for: sdNode)
+            let dive = try await deepDiveService.expand(themeLabel: positionedNode.label, transcript: transcript)
+            try repository.setDeepDive(dive, for: sdNode)
         } catch {
             print("⚠️ Deep dive failed: \(error.localizedDescription)")
         }

@@ -10,7 +10,12 @@ final class SDNode {
     var categoryKey: String
     var emotionKey: String
     var weight: Int
+    /// AI-generated 2-3 paragraph reflection on this theme (the body of the
+    /// Insight tab).
     var expandedContent: String?
+    /// AI-generated Socratic question, derived from the same call as
+    /// `expandedContent` but rendered separately in the "REFLECT ASKS" block.
+    var expandedQuestion: String?
     var voiceNotes: [String]
     var positionX: Double?
     var positionY: Double?
@@ -24,6 +29,7 @@ final class SDNode {
         emotion: Emotion = .neutral,
         weight: Int = 1,
         expandedContent: String? = nil,
+        expandedQuestion: String? = nil,
         voiceNotes: [String] = [],
         position: CGPoint? = nil
     ) {
@@ -33,6 +39,7 @@ final class SDNode {
         self.emotionKey = emotion.rawValue
         self.weight = weight
         self.expandedContent = expandedContent
+        self.expandedQuestion = expandedQuestion
         self.voiceNotes = voiceNotes
         self.positionX = position.map { Double($0.x) }
         self.positionY = position.map { Double($0.y) }

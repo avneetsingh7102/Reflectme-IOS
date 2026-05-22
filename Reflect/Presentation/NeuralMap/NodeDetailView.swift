@@ -289,10 +289,7 @@ struct NodeDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("REFLECT ASKS")
                         .eyebrowStyle(color: ReflectTheme.inkFaint)
-                    Text("What does “\(node.label)” feel like when it's at its very best?")
-                        .font(ReflectTheme.serif(14.5))
-                        .foregroundStyle(ReflectTheme.ink)
-                        .lineSpacing(3)
+                    askText
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
                 .background(
@@ -326,6 +323,35 @@ struct NodeDetailView: View {
         .padding(.horizontal, 18).padding(.top, 12).padding(.bottom, 18)
         .overlay(Rectangle().fill(ReflectTheme.separator).frame(height: 0.5),
                  alignment: .top)
+    }
+
+    /// The contextual Socratic question, fed straight from the deep-dive
+    /// response. Shows a soft placeholder while still loading or if the call
+    /// failed; never falls back to the old generic template.
+    @ViewBuilder
+    private var askText: some View {
+        if let question = node.expandedQuestion, !question.isEmpty {
+            Text(question)
+                .font(ReflectTheme.serif(14.5))
+                .foregroundStyle(ReflectTheme.ink)
+                .lineSpacing(3)
+        } else if isLoadingInsight {
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(ReflectTheme.inkFaint)
+                Text("Thinking of something to ask…")
+                    .font(ReflectTheme.serif(14))
+                    .italic()
+                    .foregroundStyle(ReflectTheme.inkSoft)
+            }
+        } else {
+            Text("Reflect needs your transcript to craft a question. Try again once analysis finishes.")
+                .font(ReflectTheme.serif(14))
+                .italic()
+                .foregroundStyle(ReflectTheme.inkSoft)
+                .lineSpacing(3)
+        }
     }
 
     // MARK: - Insight loading + helpers
@@ -368,16 +394,20 @@ struct NodeDetailView: View {
     }
 
     private func loadInsight() async {
-        guard (node.expandedContent ?? "").isEmpty else { return }
+        // Skip if we already have both halves of the deep dive.
+        guard (node.expandedContent ?? "").isEmpty
+            || (node.expandedQuestion ?? "").isEmpty
+        else { return }
+
         isLoadingInsight = true
         let transcript = transcriptText
         let captured = node // capture before any swipes
         do {
-            let content = try await services.deepDiveService.expand(
+            let dive = try await services.deepDiveService.expand(
                 themeLabel: captured.label, transcript: transcript
             )
             let repo = services.makeRepository(context: modelContext)
-            try? repo.setExpandedContent(content, for: captured)
+            try? repo.setDeepDive(dive, for: captured)
         } catch {
             print("⚠️ Deep dive failed: \(error)")
         }

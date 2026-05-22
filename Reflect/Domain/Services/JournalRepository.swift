@@ -11,7 +11,7 @@ protocol JournalRepository {
     func apply(_ result: ProcessedEntry, to entry: JournalEntry) throws
     func markFailed(_ entry: JournalEntry) throws
     func delete(_ entry: JournalEntry) throws
-    func setExpandedContent(_ content: String, for node: SDNode) throws
+    func setDeepDive(_ dive: DeepDive, for node: SDNode) throws
     func appendVoiceNote(_ note: String, to node: SDNode) throws
     func setPosition(_ position: CGPoint, for node: SDNode) throws
 }

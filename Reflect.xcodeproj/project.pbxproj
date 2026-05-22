@@ -30,6 +30,7 @@
 		66F14A232ABFF7EF70EE6998 /* JournalRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9FB3A6B570313F7D47C970 /* JournalRowView.swift */; };
 		6783163EF4E31295B7140CC1 /* SupabaseSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55E5F934056FF39176B288A9 /* SupabaseSyncService.swift */; };
 		6B1F271C8A998675D7A3BF2F /* ForceDirectedLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB97C3BF82DEFEA396C24C84 /* ForceDirectedLayout.swift */; };
+		6B618A623F9B98DC2C9A4233 /* DeepDive.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66D9374CEED4F28AE01B57D /* DeepDive.swift */; };
 		709E9A8A9C0B1A052577DBBC /* PrivacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA958ED3B4847269CF8DDEB /* PrivacyView.swift */; };
 		72131F2394CB4C10430AC444 /* JournalRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28429C8C2BAE699406EC76CA /* JournalRepository.swift */; };
 		8352D36C7FC70EF214163103 /* DeepDiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C764AEF80640C61ED83CBDC /* DeepDiveService.swift */; };
@@ -104,6 +105,7 @@
 		BA9FB3A6B570313F7D47C970 /* JournalRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalRowView.swift; sourceTree = "<group>"; };
 		BE8F5037F4A7CDAA3175042C /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		D162F42EF01FBEEF5D4308F9 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		D66D9374CEED4F28AE01B57D /* DeepDive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepDive.swift; sourceTree = "<group>"; };
 		D852FC900335BAB3F080131B /* JournalListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalListView.swift; sourceTree = "<group>"; };
 		DBF3EBDE1AAD95E51AAA643C /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 		DE358971B891BA192C6CAA85 /* SpeechTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechTranscriber.swift; sourceTree = "<group>"; };
@@ -272,6 +274,7 @@
 		992619E6511F464BD0FAD9DC /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				D66D9374CEED4F28AE01B57D /* DeepDive.swift */,
 				1DA22E1DD21D811C2FCC68C9 /* Emotion.swift */,
 				5F5ED3BAAF040E070F37383B /* NodeCategory.swift */,
 				33039A549EE07A1FBF095024 /* ProcessedEntry.swift */,
@@ -442,6 +445,7 @@
 				4E8DF04C3069240A5DA159A0 /* CloudPullService.swift in Sources */,
 				439EAE1F936436A72C0583CE /* ColorGuideView.swift in Sources */,
 				47FD7C6DE0297F7A0209CC76 /* ContentView.swift in Sources */,
+				6B618A623F9B98DC2C9A4233 /* DeepDive.swift in Sources */,
 				8352D36C7FC70EF214163103 /* DeepDiveService.swift in Sources */,
 				D8266FB65F9F838E8C4B7257 /* Emotion.swift in Sources */,
 				C841D22491C7E17593AAC9B7 /* EntryProcessor.swift in Sources */,

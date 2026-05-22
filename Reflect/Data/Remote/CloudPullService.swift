@@ -100,6 +100,7 @@ final class CloudPullService {
             existing.emotionKey = row.emotion_key
             existing.weight = row.weight
             existing.expandedContent = row.expanded_content
+            existing.expandedQuestion = row.expanded_question
             existing.voiceNotes = row.voice_notes
             existing.positionX = row.position_x
             existing.positionY = row.position_y
@@ -113,6 +114,7 @@ final class CloudPullService {
             emotion: Emotion(apiString: row.emotion_key),
             weight: row.weight,
             expandedContent: row.expanded_content,
+            expandedQuestion: row.expanded_question,
             voiceNotes: row.voice_notes,
             position: (row.position_x.flatMap { x in row.position_y.map { y in CGPoint(x: x, y: y) } })
         )

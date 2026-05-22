@@ -89,8 +89,9 @@ final class SwiftDataJournalRepository: JournalRepository {
         try context.save()
     }
 
-    func setExpandedContent(_ content: String, for node: SDNode) throws {
-        node.expandedContent = content
+    func setDeepDive(_ dive: DeepDive, for node: SDNode) throws {
+        node.expandedContent = dive.insight
+        node.expandedQuestion = dive.question
         try context.save()
     }
 

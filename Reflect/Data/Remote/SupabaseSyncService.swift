@@ -51,6 +51,7 @@ actor SupabaseSyncService {
         let emotion_key: String
         let weight: Int
         let expanded_content: String?
+        let expanded_question: String?
         let voice_notes: [String]
         let position_x: Double?
         let position_y: Double?
