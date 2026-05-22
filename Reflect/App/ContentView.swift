@@ -3,11 +3,11 @@ import SwiftUI
 
 /// Root navigation surface.
 ///
-/// - Gates the app behind `LoginView` when no Supabase session.
-/// - Owns the `NavigationPath` and registers three destinations:
-///     * `JournalEntry`   → `JournalEntryView` (transcript)
-///     * `MapRoute`       → `NeuralMapView` (per-entry neural map)
-///     * `SDNode` is pushed locally from `NeuralMapView` via `.navigationDestination(item:)`.
+/// - Gates the app behind `LoginView` when there's no Supabase session and
+///   no local-bypass.
+/// - Owns the `NavigationPath` and registers two destinations:
+///     * `JournalEntry` → `EntryView` (map + transcript modes share one screen)
+///     * `SDNode`       → `NodeDetailView`
 /// - Runs cloud-pull / local-wipe side-effects via `AuthSyncCoordinator`.
 struct ContentView: View {
     @Environment(ServiceContainer.self) private var services
@@ -22,10 +22,7 @@ struct ContentView: View {
                 NavigationStack(path: $path) {
                     JournalListView(path: $path)
                         .navigationDestination(for: JournalEntry.self) { entry in
-                            JournalEntryView(entry: entry)
-                        }
-                        .navigationDestination(for: MapRoute.self) { route in
-                            NeuralMapView(entry: route.entry)
+                            EntryView(entry: entry)
                         }
                         .navigationDestination(for: SDNode.self) { node in
                             NodeDetailView(node: node)

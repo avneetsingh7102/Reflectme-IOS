@@ -9,7 +9,7 @@ import Observation
 @MainActor
 @Observable
 final class JournalListViewModel {
-    enum Filter: Equatable {
+    enum Filter: Hashable {
         case all
         case emotion(Emotion)
         case thisWeek

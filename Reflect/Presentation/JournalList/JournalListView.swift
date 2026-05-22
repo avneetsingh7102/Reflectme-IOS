@@ -3,12 +3,13 @@ import SwiftUI
 
 /// Home / journal directory — redesigned per Reflect Mobile spec.
 ///
-/// Layout:
-/// 1. Top bar: menu (left), entry count mono (right).
-/// 2. Title block: eyebrow "Journal", H1 "Every reflection, in order."
-/// 3. Inline pill search bar + horizontal filter chips.
-/// 4. Month-sectioned list with serif rows on white cards.
-/// 5. Floating bottom-centre `PulsingRing` FAB + "NEW REFLECTION" cue.
+/// Layout: top bar (menu + entry count) · serif title block · inline search +
+/// horizontal filter chips (only the ones with matches) · month-sectioned
+/// list of journal rows on white cards · floating bottom-centre PulsingRing
+/// labelled "NEW REFLECTION".
+///
+/// Both tapping an existing entry AND finishing a new recording push the same
+/// `JournalEntry` value onto the path → `EntryView` (map mode by default).
 struct JournalListView: View {
     @Binding var path: NavigationPath
 
@@ -40,7 +41,12 @@ struct JournalListView: View {
                 contentList
             }
 
-            recordRingFAB
+            if !entries.isEmpty {
+                RecordRingFAB(label: "NEW REFLECTION") {
+                    showRecording = true
+                }
+                .padding(.bottom, 28)
+            }
 
             if showSideMenu { sideMenuOverlay }
         }
@@ -67,7 +73,7 @@ struct JournalListView: View {
         }
     }
 
-    // MARK: - Sub-views
+    // MARK: - Toolbar
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
@@ -81,12 +87,14 @@ struct JournalListView: View {
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
-            Text("\(entries.count) ENTRIES")
+            Text("\(entries.count) ENTR\(entries.count == 1 ? "Y" : "IES")")
                 .font(ReflectTheme.mono(11))
                 .tracking(0.4)
                 .foregroundStyle(ReflectTheme.inkSoft)
         }
     }
+
+    // MARK: - Content list
 
     private var contentList: some View {
         ScrollView(showsIndicators: false) {
@@ -99,8 +107,7 @@ struct JournalListView: View {
                     .padding(.bottom, 14)
 
                 if visibleEntries.isEmpty {
-                    noResultsBlock
-                        .padding(.top, 40)
+                    noResultsBlock.padding(.top, 40)
                 } else {
                     ForEach(monthGroups) { group in
                         monthSection(group: group)
@@ -145,18 +152,40 @@ struct JournalListView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     FilterChip(label: "All",
-                               isActive: viewModel?.filter == .all) { viewModel?.filter = .all }
-                    FilterChip(label: "This Week",
-                               isActive: viewModel?.filter == .thisWeek) { viewModel?.filter = .thisWeek }
-                    FilterChip(label: "This Month",
-                               isActive: viewModel?.filter == .thisMonth) { viewModel?.filter = .thisMonth }
-                    ForEach(Emotion.allCases, id: \.self) { e in
-                        FilterChip(label: e.label,
-                                   isActive: viewModel?.filter == .emotion(e)) { viewModel?.filter = .emotion(e) }
+                               isActive: (viewModel?.filter ?? .all) == .all) {
+                        viewModel?.filter = .all
+                    }
+                    ForEach(availableFilters, id: \.self) { f in
+                        FilterChip(label: f.title,
+                                   isActive: viewModel?.filter == f) { viewModel?.filter = f }
                     }
                 }
             }
         }
+    }
+
+    /// Only show a filter chip if it would match at least one entry — keeps
+    /// the row uncluttered while you've still got a tiny journal.
+    private var availableFilters: [JournalListViewModel.Filter] {
+        var out: [JournalListViewModel.Filter] = []
+        let cal = Calendar.current
+
+        if let since = cal.date(byAdding: .day, value: -7, to: Date()),
+           entries.contains(where: { $0.date >= since }) {
+            out.append(.thisWeek)
+        }
+        if let since = cal.date(byAdding: .month, value: -1, to: Date()),
+           entries.contains(where: { $0.date >= since }) {
+            out.append(.thisMonth)
+        }
+
+        var seenEmotions = Set<String>()
+        for entry in entries {
+            for node in entry.mapNodes where seenEmotions.insert(node.emotionKey).inserted {
+                out.append(.emotion(node.emotion))
+            }
+        }
+        return out
     }
 
     private func monthSection(group: JournalListViewModel.MonthGroup) -> some View {
@@ -187,9 +216,8 @@ struct JournalListView: View {
     }
 
     private var emptyStateColumn: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 20) {
             Spacer()
-            // Quill + paper illustration
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(ReflectTheme.separator, lineWidth: 1)
@@ -205,15 +233,12 @@ struct JournalListView: View {
                         .padding(.top, 24)
                         , alignment: .top
                     )
-
                 Image(systemName: "pencil.tip")
                     .font(.system(size: 36, weight: .medium))
                     .foregroundStyle(ReflectTheme.mustard500)
                     .rotationEffect(.degrees(45))
                     .offset(x: 36, y: -32)
             }
-            .padding(.bottom, 6)
-
             Text("Your first page.")
                 .font(.system(size: 22, weight: .medium, design: .serif))
                 .foregroundStyle(ReflectTheme.ink)
@@ -222,7 +247,13 @@ struct JournalListView: View {
                 .foregroundStyle(ReflectTheme.inkSoft)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 260)
-            Spacer().frame(height: 160)
+
+            RecordRingFAB(label: "NEW REFLECTION") {
+                showRecording = true
+            }
+            .padding(.top, 8)
+
+            Spacer().frame(height: 60)
         }
         .frame(maxWidth: .infinity)
     }
@@ -246,19 +277,6 @@ struct JournalListView: View {
         .padding(.vertical, 40)
     }
 
-    private var recordRingFAB: some View {
-        VStack(spacing: 8) {
-            PulsingRing(mode: .resting, size: 68) {
-                showRecording = true
-            }
-            Text("NEW REFLECTION")
-                .font(ReflectTheme.rounded(10, weight: .bold))
-                .tracking(1.0)
-                .foregroundStyle(ReflectTheme.inkSoft)
-        }
-        .padding(.bottom, 28)
-    }
-
     private var sideMenuOverlay: some View {
         ZStack(alignment: .leading) {
             Color.black.opacity(0.3)
@@ -280,14 +298,15 @@ struct JournalListView: View {
         guard let entry else { return }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
-            // After recording, drop the user into the neural map for that entry
-            // (so they see the AI-extracted nodes immediately).
-            path.append(MapRoute(entry: entry))
+            // Same destination as tapping an existing row — keeps the user's
+            // mental model consistent and avoids the old "lands somewhere
+            // weird" bug from MapRoute living in a separate slot.
+            path.append(entry)
         }
     }
 }
 
-// MARK: - Row + supporting types
+// MARK: - Card press style
 
 struct CardPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -298,7 +317,8 @@ struct CardPressStyle: ButtonStyle {
     }
 }
 
-/// Horizontal filter chip — active = ink-black background, inactive = outlined.
+// MARK: - Filter chip (used in the search-row strip)
+
 private struct FilterChip: View {
     let label: String
     let isActive: Bool
@@ -322,13 +342,4 @@ private struct FilterChip: View {
         }
         .buttonStyle(.plain)
     }
-}
-
-/// Navigation route to push the neural map for a specific entry. Wrapping in
-/// a struct lets us route to either `JournalEntryView` or `NeuralMapView`
-/// from the same NavigationPath.
-struct MapRoute: Hashable {
-    let entry: JournalEntry
-    func hash(into hasher: inout Hasher) { hasher.combine(entry.id) }
-    static func == (lhs: MapRoute, rhs: MapRoute) -> Bool { lhs.entry.id == rhs.entry.id }
 }

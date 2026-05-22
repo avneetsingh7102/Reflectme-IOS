@@ -1,11 +1,15 @@
 import SwiftUI
+@preconcurrency import SwiftData
 
 /// Slide-in side menu per design: profile header, single primary nav item
 /// ("Journal" active = mustard-50 background), secondary nav items below,
-/// then a blue-700 streak card pinned to the bottom.
+/// then a blue-700 streak card pinned to the bottom (real consecutive-day
+/// math from the user's actual entries).
 struct SideMenuView: View {
     @Binding var showSettings: Bool
+
     @Environment(ServiceContainer.self) private var services
+    @Query(sort: \JournalEntry.date, order: .reverse) private var entries: [JournalEntry]
 
     @State private var showTutorial = false
     @State private var showColorGuide = false
@@ -82,16 +86,20 @@ struct SideMenuView: View {
     }
 
     private var streakCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let streak = currentStreak
+        let total = entries.count
+        return VStack(alignment: .leading, spacing: 8) {
             Text("Streak")
                 .eyebrowStyle(color: ReflectTheme.mustard300)
 
-            (Text("12 days\n").foregroundStyle(.white)
-            + Text("of returning.").italic().foregroundStyle(ReflectTheme.mustard300))
+            (Text("\(streak) day\(streak == 1 ? "" : "s")\n").foregroundStyle(.white)
+            + Text(streak > 0 ? "of returning." : "to begin.")
+                .italic()
+                .foregroundStyle(ReflectTheme.mustard300))
                 .font(ReflectTheme.serif(24, weight: .medium))
                 .lineSpacing(2)
 
-            Text("28 total reflections · 4h 12m")
+            Text("\(total) total reflection\(total == 1 ? "" : "s")")
                 .font(ReflectTheme.rounded(11))
                 .foregroundStyle(Color.white.opacity(0.6))
         }
@@ -103,9 +111,34 @@ struct SideMenuView: View {
         )
     }
 
-    // MARK: - Computed user identity
+    // MARK: - Streak math
+
+    /// Number of consecutive calendar days (ending today, or yesterday if the
+    /// user hasn't journalled yet today) with at least one entry. Zero if
+    /// the user has never journalled or hasn't done so for >1 day.
+    private var currentStreak: Int {
+        guard !entries.isEmpty else { return 0 }
+        let cal = Calendar.current
+        let entryDays = Set(entries.map { cal.startOfDay(for: $0.date) })
+
+        var cursor = cal.startOfDay(for: Date())
+        if !entryDays.contains(cursor) {
+            cursor = cal.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+            if !entryDays.contains(cursor) { return 0 }
+        }
+
+        var streak = 0
+        while entryDays.contains(cursor) {
+            streak += 1
+            cursor = cal.date(byAdding: .day, value: -1, to: cursor) ?? cursor
+        }
+        return streak
+    }
+
+    // MARK: - Identity
 
     private var userDisplayName: String {
+        if services.authService.isLocalBypass { return "Local mode" }
         if let id = services.authService.currentUserID {
             return "Reflector · " + String(id.prefix(6))
         }
@@ -113,7 +146,8 @@ struct SideMenuView: View {
     }
 
     private var userSubtitle: String {
-        services.authService.isAuthenticated ? "Signed in" : "Sign in to sync"
+        if services.authService.isLocalBypass { return "Not signed in" }
+        return services.authService.isAuthenticated ? "Signed in" : "Sign in to sync"
     }
 
     private var userInitial: String {

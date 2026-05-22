@@ -24,6 +24,7 @@
 		4C722A5C66158A1A192408C7 /* NodeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26D3C1155E2F65F64065EEF9 /* NodeDetailView.swift */; };
 		4E8DF04C3069240A5DA159A0 /* CloudPullService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C52855FB0376026BFB87BB7 /* CloudPullService.swift */; };
 		51B8B4705A31E7CB9E70CAEA /* GroqDeepDiveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8814BDBCD5B7A025CBFE176E /* GroqDeepDiveService.swift */; };
+		563565E182EAC6EC330D5EB1 /* NeuralMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B487B389736337AFD91E275B /* NeuralMapView.swift */; };
 		5C3DD588FEA03FE39D7FA547 /* SpeechTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE358971B891BA192C6CAA85 /* SpeechTranscriber.swift */; };
 		5ED7F26C1F5633E9FAA71432 /* SyncingJournalRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1165BF6497E2ABCD31BCADFB /* SyncingJournalRepository.swift */; };
 		62D7BD5345F34CCE944392D1 /* TutorialView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C4E299138AF0DD6002FD7C /* TutorialView.swift */; };
@@ -40,6 +41,7 @@
 		98701E6E461FF9EFA95437D8 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE8F5037F4A7CDAA3175042C /* AppConfig.swift */; };
 		9E6B6EFF63D78EE4F3035DEC /* GroqEntryProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB795083AD2480EA83070AB2 /* GroqEntryProcessor.swift */; };
 		A77B13ABD49EF5341FF52FA4 /* LocalWipeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFD3D3341E285AA736C06DF3 /* LocalWipeService.swift */; };
+		AD330466FAC0AB21ED2B07EB /* JournalEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18E1A735CD91BBD880656F56 /* JournalEntryView.swift */; };
 		AE0A22E5E9F3E92BF475E94C /* NeuralMapViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70B2491C73A6F7860EA77C91 /* NeuralMapViewModel.swift */; };
 		C2A81126246B20742B7C398D /* NodeCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F5ED3BAAF040E070F37383B /* NodeCategory.swift */; };
 		C4811AC103F911FF85FBB523 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBF3EBDE1AAD95E51AAA643C /* FlowLayout.swift */; };
@@ -53,7 +55,6 @@
 		E33127555FA6EC920FBD3467 /* SDLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CA6AE91DDBC8E02822D71C /* SDLink.swift */; };
 		E9E4D8F1ECCEE8A30CACAC0D /* FilterPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9738BE9C04F52EFFFF414C80 /* FilterPill.swift */; };
 		EF64E4E0BB8B8C39D9D622AD /* PulsingRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6818193C2B84124934A8E3C2 /* PulsingRing.swift */; };
-		F1F763AEA0152C4C64F40705 /* EntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93B60EE90081C10E775459FA /* EntryView.swift */; };
 		F50178F8F75624008CBCD35C /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D162F42EF01FBEEF5D4308F9 /* LoginView.swift */; };
 		F643B0A59F811D9CA42E9FF0 /* Secrets.example.plist in Resources */ = {isa = PBXBuildFile; fileRef = F232A3ECD2B4E8F85F5FB665 /* Secrets.example.plist */; };
 		F661B65C2DC5AB8163289C73 /* SDNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17238FF3BC71FE6BAD6EC55E /* SDNode.swift */; };
@@ -66,6 +67,7 @@
 		0F67B77C332009F005F02819 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 		1165BF6497E2ABCD31BCADFB /* SyncingJournalRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncingJournalRepository.swift; sourceTree = "<group>"; };
 		17238FF3BC71FE6BAD6EC55E /* SDNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SDNode.swift; sourceTree = "<group>"; };
+		18E1A735CD91BBD880656F56 /* JournalEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalEntryView.swift; sourceTree = "<group>"; };
 		1C764AEF80640C61ED83CBDC /* DeepDiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepDiveService.swift; sourceTree = "<group>"; };
 		1DA22E1DD21D811C2FCC68C9 /* Emotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Emotion.swift; sourceTree = "<group>"; };
 		1E19C5626C23590B373901FB /* ColorGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorGuideView.swift; sourceTree = "<group>"; };
@@ -92,15 +94,15 @@
 		737AB86DAE7189209758AB56 /* SideMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideMenuView.swift; sourceTree = "<group>"; };
 		7B03F51EC28AB306F73ABFD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7FF90BB34E711DEDBCD462B5 /* ServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceContainer.swift; sourceTree = "<group>"; };
-		87C4A38E06D812CFC76B5D12 /* pending-insights.jsonl */ = {isa = PBXFileReference; path = "pending-insights.jsonl"; sourceTree = "<group>"; };
+		87C4A38E06D812CFC76B5D12 /* pending-insights.jsonl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "pending-insights.jsonl"; sourceTree = "<group>"; };
 		8814BDBCD5B7A025CBFE176E /* GroqDeepDiveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroqDeepDiveService.swift; sourceTree = "<group>"; };
 		88B0D64AA99B79B914685492 /* ReflectTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflectTheme.swift; sourceTree = "<group>"; };
 		89A835C4AAE5C0481226BBFA /* JournalListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalListViewModel.swift; sourceTree = "<group>"; };
-		8F672CED7F67F71F0CBF8BFA /* Reflect.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Reflect.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F672CED7F67F71F0CBF8BFA /* Reflect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Reflect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9069A6C1C36CEC0804BC46B0 /* PositionedNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionedNode.swift; sourceTree = "<group>"; };
-		93B60EE90081C10E775459FA /* EntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryView.swift; sourceTree = "<group>"; };
 		9738BE9C04F52EFFFF414C80 /* FilterPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPill.swift; sourceTree = "<group>"; };
 		A6D4A9C6946E5D610E2F6E27 /* AuthSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSyncCoordinator.swift; sourceTree = "<group>"; };
+		B487B389736337AFD91E275B /* NeuralMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeuralMapView.swift; sourceTree = "<group>"; };
 		BA9FB3A6B570313F7D47C970 /* JournalRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalRowView.swift; sourceTree = "<group>"; };
 		BE8F5037F4A7CDAA3175042C /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		D162F42EF01FBEEF5D4308F9 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -130,9 +132,9 @@
 		1420D4F687B2965EE71A2226 /* NeuralMap */ = {
 			isa = PBXGroup;
 			children = (
-				93B60EE90081C10E775459FA /* EntryView.swift */,
 				9738BE9C04F52EFFFF414C80 /* FilterPill.swift */,
 				FB97C3BF82DEFEA396C24C84 /* ForceDirectedLayout.swift */,
+				B487B389736337AFD91E275B /* NeuralMapView.swift */,
 				70B2491C73A6F7860EA77C91 /* NeuralMapViewModel.swift */,
 				26D3C1155E2F65F64065EEF9 /* NodeDetailView.swift */,
 				9069A6C1C36CEC0804BC46B0 /* PositionedNode.swift */,
@@ -177,6 +179,7 @@
 		57D1E84390E3C15B78003A3D /* JournalList */ = {
 			isa = PBXGroup;
 			children = (
+				18E1A735CD91BBD880656F56 /* JournalEntryView.swift */,
 				D852FC900335BAB3F080131B /* JournalListView.swift */,
 				89A835C4AAE5C0481226BBFA /* JournalListViewModel.swift */,
 				BA9FB3A6B570313F7D47C970 /* JournalRowView.swift */,
@@ -392,8 +395,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = A0988D8EEEA955AD00D00CD4 /* Build configuration list for PBXProject "Reflect" */;
 			developmentRegion = en;
@@ -445,7 +446,6 @@
 				8352D36C7FC70EF214163103 /* DeepDiveService.swift in Sources */,
 				D8266FB65F9F838E8C4B7257 /* Emotion.swift in Sources */,
 				C841D22491C7E17593AAC9B7 /* EntryProcessor.swift in Sources */,
-				F1F763AEA0152C4C64F40705 /* EntryView.swift in Sources */,
 				E9E4D8F1ECCEE8A30CACAC0D /* FilterPill.swift in Sources */,
 				C4811AC103F911FF85FBB523 /* FlowLayout.swift in Sources */,
 				6B1F271C8A998675D7A3BF2F /* ForceDirectedLayout.swift in Sources */,
@@ -453,12 +453,14 @@
 				51B8B4705A31E7CB9E70CAEA /* GroqDeepDiveService.swift in Sources */,
 				9E6B6EFF63D78EE4F3035DEC /* GroqEntryProcessor.swift in Sources */,
 				0524A52253F7F3FACBB0B28E /* JournalEntry.swift in Sources */,
+				AD330466FAC0AB21ED2B07EB /* JournalEntryView.swift in Sources */,
 				8F6FFD5E7E7166AF3FCDFC28 /* JournalListView.swift in Sources */,
 				21BC4D2A48F82669FA82C1F8 /* JournalListViewModel.swift in Sources */,
 				72131F2394CB4C10430AC444 /* JournalRepository.swift in Sources */,
 				66F14A232ABFF7EF70EE6998 /* JournalRowView.swift in Sources */,
 				A77B13ABD49EF5341FF52FA4 /* LocalWipeService.swift in Sources */,
 				F50178F8F75624008CBCD35C /* LoginView.swift in Sources */,
+				563565E182EAC6EC330D5EB1 /* NeuralMapView.swift in Sources */,
 				AE0A22E5E9F3E92BF475E94C /* NeuralMapViewModel.swift in Sources */,
 				C2A81126246B20742B7C398D /* NodeCategory.swift in Sources */,
 				4C722A5C66158A1A192408C7 /* NodeDetailView.swift in Sources */,
@@ -557,7 +559,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Reflect/Reflect.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 42HZS677SQ;
 				INFOPLIST_KEY_CFBundleDisplayName = Reflect;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Reflect uses your microphone to record voice journals.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Reflect transcribes your voice to create your journal entry.";
@@ -570,7 +574,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.reflect.app;
+				PRODUCT_BUNDLE_IDENTIFIER = "-";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -581,7 +585,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Reflect/Reflect.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 42HZS677SQ;
 				INFOPLIST_KEY_CFBundleDisplayName = Reflect;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Reflect uses your microphone to record voice journals.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Reflect transcribes your voice to create your journal entry.";
@@ -594,7 +600,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.reflect.app;
+				PRODUCT_BUNDLE_IDENTIFIER = "-";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

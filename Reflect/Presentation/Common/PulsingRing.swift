@@ -2,13 +2,14 @@ import SwiftUI
 
 /// The glowing orange ring used everywhere a "voice" affordance is needed.
 ///
-/// Per the design system: **no microphone icon** — just light. The ring is
-/// the entire affordance. Tap it to start a reflection.
+/// No microphone icon — the ring itself is the affordance. Visual values come
+/// straight from the `.glow-ring` CSS in the design handoff so the on-device
+/// render matches the prototype.
 ///
-/// Sizes used in the design:
-/// - 68 pt = resting (FAB on Journal + Map, mark on Login)
-/// - 85 pt = listening (centred in Recording surface)
-/// - 96 pt = processing (fast spin)
+/// Standard sizes used across the app:
+/// - 76 pt = resting FAB (journal list + entry map mode)
+/// - 96 pt = listening (recording surface)
+/// - 110 pt = processing (recording surface, fast spin)
 /// - 160 pt = tutorial illustration
 struct PulsingRing: View {
     enum Mode {
@@ -18,53 +19,73 @@ struct PulsingRing: View {
     }
 
     var mode: Mode = .resting
-    var size: CGFloat = 68
+    var size: CGFloat = 76
     /// `true` when sitting on the cream canvas (softer halos); `false` for the
     /// dark recording surface (richer halos).
     var onLightBackground: Bool = true
     var onTap: (() -> Void)? = nil
 
     @State private var breathe = false
-    @State private var rotation: Double = 0
     @State private var shineRotation: Double = 0
 
     var body: some View {
-        let visual = visualConfig
+        let cfg = visualConfig
         Button(action: { onTap?() }) {
             ZStack {
-                // Far halo — wide, breathes slowly
+                // Far halo — wide, slow breathe
                 Circle()
-                    .fill(visual.haloFar)
-                    .frame(width: size * 2.5, height: size * 2.5)
-                    .blur(radius: 8)
-                    .opacity(breathe ? 0.85 : 0.55)
+                    .fill(cfg.haloFar)
+                    .frame(width: size * 3.0, height: size * 3.0)
+                    .blur(radius: 12)
+                    .opacity(breathe ? 0.95 : 0.55)
                     .scaleEffect(breathe ? 1.08 : 0.94)
 
-                // Near halo — tighter, brighter
+                // Near halo — tighter, brighter peach
                 Circle()
-                    .fill(visual.haloNear)
-                    .frame(width: size * 1.44, height: size * 1.44)
-                    .blur(radius: 4)
+                    .fill(cfg.haloNear)
+                    .frame(width: size * 1.8, height: size * 1.8)
+                    .blur(radius: 6)
                     .scaleEffect(breathe ? 1.05 : 0.96)
 
-                // Rim — the actual hairline ring
+                // Outer shadow ring — pure CSS-style box-shadow rim glow
                 Circle()
-                    .strokeBorder(visual.rimColor, lineWidth: max(1.2, size * 0.018))
+                    .fill(Color.clear)
                     .frame(width: size, height: size)
-                    .shadow(color: ReflectTheme.primaryBright.opacity(visual.outerGlowOpacity),
+                    .shadow(color: ReflectTheme.primary.opacity(cfg.outerWideGlow),
+                            radius: size * 0.7, x: 0, y: 0)
+                    .shadow(color: ReflectTheme.primary.opacity(cfg.outerTightGlow),
                             radius: size * 0.22, x: 0, y: 0)
-                    .shadow(color: ReflectTheme.primary.opacity(visual.outerGlowOpacity * 0.7),
-                            radius: size * 0.07, x: 0, y: 0)
 
-                // Conic shine — a slowly rotating brighter arc along the rim
+                // The hairline rim itself
                 Circle()
-                    .stroke(visual.shineGradient, lineWidth: max(1.2, size * 0.018))
+                    .stroke(cfg.rimColor, lineWidth: max(1.3, size * 0.020))
                     .frame(width: size, height: size)
-                    .mask(
-                        Circle().strokeBorder(Color.white, lineWidth: max(1.2, size * 0.018))
+
+                // Inset rim warmth — like `inset 0 0 24px rgba(...)`
+                Circle()
+                    .strokeBorder(
+                        RadialGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: ReflectTheme.primarySoft.opacity(0.35), location: 0),
+                                .init(color: .clear, location: 0.5)
+                            ]),
+                            center: .center,
+                            startRadius: size * 0.30,
+                            endRadius: size * 0.50
+                        ),
+                        lineWidth: size * 0.18
                     )
+                    .frame(width: size, height: size)
+                    .blendMode(.plusLighter)
+                    .opacity(0.7)
+
+                // Conic shine arc — slowly rotates around the rim
+                Circle()
+                    .stroke(cfg.shineGradient, lineWidth: max(1.6, size * 0.022))
+                    .frame(width: size, height: size)
+                    .mask(Circle().strokeBorder(Color.white, lineWidth: max(1.6, size * 0.022)))
                     .rotationEffect(.degrees(shineRotation))
-                    .opacity(0.95)
+                    .opacity(0.85)
             }
             .frame(width: size, height: size, alignment: .center)
             .contentShape(Circle())
@@ -72,13 +93,12 @@ struct PulsingRing: View {
         .buttonStyle(.plain)
         .disabled(onTap == nil)
         .onAppear {
-            withAnimation(.easeInOut(duration: visual.breatheSeconds)
+            withAnimation(.easeInOut(duration: cfg.breatheSeconds)
                 .repeatForever(autoreverses: true)) {
                 breathe = true
             }
-            withAnimation(.linear(duration: visual.spinSeconds)
+            withAnimation(.linear(duration: cfg.spinSeconds)
                 .repeatForever(autoreverses: false)) {
-                rotation = 360
                 shineRotation = 360
             }
         }
@@ -91,45 +111,45 @@ struct PulsingRing: View {
         let haloNear: RadialGradient
         let rimColor: Color
         let shineGradient: AngularGradient
-        let outerGlowOpacity: Double
+        let outerWideGlow: Double   // mimics box-shadow 0 0 56px rgba(199,78,8,0.25)
+        let outerTightGlow: Double  // mimics 0 0 18px rgba(199,78,8,0.45)
         let breatheSeconds: Double
         let spinSeconds: Double
     }
 
     private var visualConfig: VisualConfig {
-        let farOpacityFar: Double = onLightBackground ? 0.16 : 0.22
-        let farOpacityNear: Double = onLightBackground ? 0.30 : 0.38
+        // Per design tokens.css `.glow-ring` values
+        let farFarOpacity: Double  = onLightBackground ? 0.16 : 0.22
+        let farMidOpacity: Double  = onLightBackground ? 0.06 : 0.10
+        let nearFarOpacity: Double = onLightBackground ? 0.30 : 0.38
+        let nearMidOpacity: Double = onLightBackground ? 0.10 : 0.14
 
         let haloFar = RadialGradient(
             gradient: Gradient(stops: [
-                .init(color: ReflectTheme.primaryBright.opacity(farOpacityFar), location: 0),
-                .init(color: ReflectTheme.primary.opacity(0.10), location: 0.35),
-                .init(color: .clear, location: 0.62)
+                .init(color: ReflectTheme.primaryBright.opacity(farFarOpacity), location: 0),
+                .init(color: ReflectTheme.primary.opacity(farMidOpacity), location: 0.28),
+                .init(color: .clear, location: 0.58)
             ]),
-            center: .center,
-            startRadius: 0,
-            endRadius: size
+            center: .center, startRadius: 0, endRadius: size * 1.3
         )
         let haloNear = RadialGradient(
             gradient: Gradient(stops: [
-                .init(color: ReflectTheme.primarySoft.opacity(farOpacityNear), location: 0),
-                .init(color: ReflectTheme.primarySoft.opacity(0.14), location: 0.40),
-                .init(color: .clear, location: 0.66)
+                .init(color: ReflectTheme.primarySoft.opacity(nearFarOpacity), location: 0),
+                .init(color: ReflectTheme.primarySoft.opacity(nearMidOpacity), location: 0.35),
+                .init(color: .clear, location: 0.60)
             ]),
-            center: .center,
-            startRadius: 0,
-            endRadius: size * 0.7
+            center: .center, startRadius: 0, endRadius: size * 0.85
         )
         let rimColor = onLightBackground
-            ? ReflectTheme.primary.opacity(0.95)
+            ? ReflectTheme.primary.opacity(0.92)
             : ReflectTheme.primarySoft.opacity(0.95)
 
         let shineGradient = AngularGradient(
             gradient: Gradient(stops: [
                 .init(color: .clear, location: 0.00),
-                .init(color: .clear, location: 0.40),
+                .init(color: .clear, location: 0.35),
                 .init(color: Color(hex: "FFF0DC").opacity(0.95), location: 0.50),
-                .init(color: .clear, location: 0.60),
+                .init(color: .clear, location: 0.65),
                 .init(color: .clear, location: 1.00)
             ]),
             center: .center
@@ -140,21 +160,24 @@ struct PulsingRing: View {
             return VisualConfig(
                 haloFar: haloFar, haloNear: haloNear,
                 rimColor: rimColor, shineGradient: shineGradient,
-                outerGlowOpacity: onLightBackground ? 0.35 : 0.45,
+                outerWideGlow:  onLightBackground ? 0.25 : 0.35,
+                outerTightGlow: onLightBackground ? 0.45 : 0.55,
                 breatheSeconds: 4.8, spinSeconds: 6.5
             )
         case .listening:
             return VisualConfig(
                 haloFar: haloFar, haloNear: haloNear,
                 rimColor: rimColor, shineGradient: shineGradient,
-                outerGlowOpacity: onLightBackground ? 0.40 : 0.55,
-                breatheSeconds: 3.6, spinSeconds: 5.2
+                outerWideGlow:  onLightBackground ? 0.32 : 0.45,
+                outerTightGlow: onLightBackground ? 0.55 : 0.65,
+                breatheSeconds: 3.6, spinSeconds: 5.0
             )
         case .processing:
             return VisualConfig(
                 haloFar: haloFar, haloNear: haloNear,
                 rimColor: rimColor, shineGradient: shineGradient,
-                outerGlowOpacity: 0.60,
+                outerWideGlow:  0.50,
+                outerTightGlow: 0.70,
                 breatheSeconds: 1.4, spinSeconds: 1.6
             )
         }
@@ -163,16 +186,15 @@ struct PulsingRing: View {
 
 #Preview("Light surfaces") {
     VStack(spacing: 60) {
-        PulsingRing(mode: .resting, size: 68)
+        PulsingRing(mode: .resting, size: 76)
         PulsingRing(mode: .listening, size: 160)
-        PulsingRing(mode: .processing, size: 96)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(ReflectTheme.canvas)
 }
 
 #Preview("Dark surface") {
-    PulsingRing(mode: .listening, size: 200, onLightBackground: false)
+    PulsingRing(mode: .listening, size: 96, onLightBackground: false)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(ReflectTheme.blue700)
 }
